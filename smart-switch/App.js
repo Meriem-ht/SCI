@@ -8,12 +8,12 @@ import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import init from 'react_native_mqtt';
 
-
 const SLIDER_COLOR = '#FFE690';
 const GRAY_COLOR = 'rgba(0, 0, 0, 0.34)';
 const SLIDER_WIDTH = 300;
 const SLIDER_HEIGHT = 65;
 const BORDER_RADIUS = 10;
+
 class CustomSlider extends React.Component {
   state = {
     slideValue: 0,
@@ -76,15 +76,13 @@ class CustomSlider extends React.Component {
   }
 }
 
-
 const options = {
-  host: 'broker.emqx.io',
-  port: 8083,
-  path: '/mqtt',
+  host: '193.168.43.32',
+  port: 1883,
   id: 'id_' + parseInt(Math.random() * 100000),
 };
 
-let client; // Declare client variable here
+let client;
 
 init({
   size: 10000,
@@ -95,7 +93,6 @@ init({
   sync: {},
 });
 
-
 const App = () => {
   const [isSwitchEnabled, setIsSwitchEnabled] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
@@ -105,99 +102,76 @@ const App = () => {
   const [statusTopic, setStatusTopic] = useState('smart-led/status');
   const [motionTopic, setMotionTopic] = useState('smart-led/motion-status');
   const [subscribedTopic, setSubscribedTopic] = useState('');
-  const [receivedIntensity, setReceivedIntensity] = useState(0);
 
 
 
-    useEffect(() => {
-        client = new Paho.MQTT.Client(options.host, options.port, options.path, options.id);
-      
-          client.onConnectionLost = (responseObject) => {
-            if (responseObject.errorCode !== 0) {
-              console.log('onConnectionLost:' + responseObject.errorMessage);
-              setStatus('Disconnected');
-            }
-          };
-      
-          client.onMessageArrived = (message) => {
-            console.log('Message received:', message.payloadString);
-            if (message.destinationName === motionTopic) {
-              const newState = message.payloadString === '1'; // Assuming '1' means motion detected
-              setIsEnabled(newState);
-            } else if (message.destinationName === statusTopic) {
-              const intensity = parseInt(message.payloadString); // Assuming the message contains the intensity value
-              setReceivedIntensity(intensity);
-            }
-          };
-          
-      
-          connect();
-      
-         
-          
-          const updateSliderValue = () => {
-            if (status === 'Connected') {
-              setHorizontalSliderValue(receivedIntensity / 2);
-            }
-          };
-        
-          updateSliderValue();
-          return () => {
-            client.disconnect();
-          };
-        }, [receivedIntensity]);
-      
-        const connect = () => {
-          setStatus('Connecting');
-          client.connect({
-            onSuccess: onConnect,
-            useSSL: false,
-            timeout: 3,
-            onFailure: onFailure,
-          });
-        };
-      
-        const onConnect = () => {
-          setStatus('Connected');
-          subscribeTopic(statusTopic);
-          console.log('Connected');
-        };
-      
-        const onFailure = (error) => {
-          setStatus('Connection failed: ' + error.errorMessage);
-          console.log('Connection failed:', error.errorMessage);
-        };
-      
-       
-      
-      const sendMessage = (msg, topic) => {
-        if (status === 'Connected') {
-          const messageObj = new Paho.MQTT.Message(msg);
-          messageObj.destinationName = topic;
-          client.send(messageObj);
-        }
-      };
-      
-      const subscribeTopic = (topic) => {
-        if (status === 'Connected') {
-          setSubscribedTopic(topic);
-          client.subscribe(topic, { qos: 0 });
-        }
-      };
-      
-        const unSubscribeTopic = () => {
-          client.unsubscribe(subscribedTopic);
-          setSubscribedTopic('');
-        };
-    const toggleSwitch = () => {
-      const newState = !isSwitchEnabled;
-      setIsSwitchEnabled(newState);
-      sendMessage(newState ? '1' : '0', statusTopic); // Send '1' for ON, '0' for OFF to status topic
-    
-      // Update horizontalSliderValue based on the switch state
-      const newSliderValue = newState ? 50 : 0;
-      setHorizontalSliderValue(newSliderValue);
+  useEffect(() => {
+    client = new Paho.MQTT.Client(options.host, options.port, options.id);
+
+    client.onConnectionLost = (responseObject) => {
+      if (responseObject.errorCode !== 0) {
+        console.log('onConnectionLost:' + responseObject.errorMessage);
+        setStatus('Disconnected');
+      }
     };
+
+    client.onMessageArrived = (message) => {
+      console.log('Message received:', message.payloadString);
+      if (message.destinationName === motionTopic) {
+        const newState = message.payloadString === '1'; // Assuming '1' means motion detected
+        setIsSwitchEnabled(newState);
+      } else if (message.destinationName === statusTopic) {
+        const newState = message.payloadString === '1'; // Assuming '1' means switch ON, '0' means switch OFF
+        setIsSwitchEnabled(newState);
+      }
+    };
+
+    connect();
+
+    return () => {
+      client.disconnect();
+    };
+  }, []);
+
+  const connect = () => {
+    setStatus('Connecting');
+    client.connect({
+      onSuccess: onConnect,
+      useSSL: false,
+      timeout: 3,
+      onFailure: onFailure,
+    });
+  };
+
+  const onConnect = () => {
+    setStatus('Connected');
+    subscribeTopic(statusTopic);
+    subscribeTopic(motionTopic);
+    console.log('Connected');
+  };
+
+  const onFailure = (error) => {
+    setStatus('Connection failed: ' + error.errorMessage);
+    console.log('Connection failed:', error.errorMessage);
+  };
+
+  const subscribeTopic = (topic) => {
+    setSubscribedTopic(topic);
+    client.subscribe(topic, { qos: 0 });
+  };
+
+  const sendMessage = (msg, topic) => {
+    const messageObj = new Paho.MQTT.Message(msg);
+    messageObj.destinationName = topic;
+    client.send(messageObj);
+  };
+
+  const toggleSwitch = () => {
+    const newState = !isSwitchEnabled;
+    setIsSwitchEnabled(newState);
+    sendMessage(newState ? '1' : '0', statusTopic); // Send '1' for ON, '0' for OFF to status topic
+  };
+
   const handleSliderValueChange = (value) => {
     setHorizontalSliderValue(value);
     sendMessage(String(Math.round(value * 2)), 'smart-led/status'); // Send slider value to intensity topic
