@@ -105,6 +105,9 @@ const App = () => {
   const [statusTopic, setStatusTopic] = useState('smart-led/status');
   const [motionTopic, setMotionTopic] = useState('smart-led/motion-status');
   const [subscribedTopic, setSubscribedTopic] = useState('');
+  const [receivedIntensity, setReceivedIntensity] = useState(0);
+
+
 
     useEffect(() => {
         client = new Paho.MQTT.Client(options.host, options.port, options.path, options.id);
@@ -121,15 +124,28 @@ const App = () => {
             if (message.destinationName === motionTopic) {
               const newState = message.payloadString === '1'; // Assuming '1' means motion detected
               setIsEnabled(newState);
+            } else if (message.destinationName === statusTopic) {
+              const intensity = parseInt(message.payloadString); // Assuming the message contains the intensity value
+              setReceivedIntensity(intensity);
             }
           };
+          
       
           connect();
       
+         
+          
+          const updateSliderValue = () => {
+            if (status === 'Connected') {
+              setHorizontalSliderValue(receivedIntensity / 2);
+            }
+          };
+        
+          updateSliderValue();
           return () => {
             client.disconnect();
           };
-        }, []);
+        }, [receivedIntensity]);
       
         const connect = () => {
           setStatus('Connecting');
@@ -144,7 +160,6 @@ const App = () => {
         const onConnect = () => {
           setStatus('Connected');
           subscribeTopic(statusTopic);
-          subscribeTopic(motionTopic);
           console.log('Connected');
         };
       
@@ -153,30 +168,42 @@ const App = () => {
           console.log('Connection failed:', error.errorMessage);
         };
       
-        const subscribeTopic = (topic) => {
-          setSubscribedTopic(topic);
-          client.subscribe(topic, { qos: 0 });
-        };
+       
       
-        const sendMessage = (msg, topic) => {
+      const sendMessage = (msg, topic) => {
+        if (status === 'Connected') {
           const messageObj = new Paho.MQTT.Message(msg);
           messageObj.destinationName = topic;
           client.send(messageObj);
-        };
+        }
+      };
+      
+      const subscribeTopic = (topic) => {
+        if (status === 'Connected') {
+          setSubscribedTopic(topic);
+          client.subscribe(topic, { qos: 0 });
+        }
+      };
       
         const unSubscribeTopic = () => {
           client.unsubscribe(subscribedTopic);
           setSubscribedTopic('');
         };
-  const toggleSwitch = () => {
-    const newState = !isSwitchEnabled;
-    setIsSwitchEnabled(newState);
-    sendMessage(newState ? '1' : '0', statusTopic); // Send '1' for ON, '0' for OFF to status topic
-  };
-
+    const toggleSwitch = () => {
+      const newState = !isSwitchEnabled;
+      setIsSwitchEnabled(newState);
+      sendMessage(newState ? '1' : '0', statusTopic); // Send '1' for ON, '0' for OFF to status topic
+    
+      // Update horizontalSliderValue based on the switch state
+      const newSliderValue = newState ? 50 : 0;
+      setHorizontalSliderValue(newSliderValue);
+    };
   const handleSliderValueChange = (value) => {
     setHorizontalSliderValue(value);
-    sendMessage(String(value), 'smart-led/intensity'); // Send slider value to intensity topic
+    sendMessage(String(Math.round(value * 2)), 'smart-led/status'); // Send slider value to intensity topic
+    // Update isSwitchEnabled based on the slider value
+    const isOn = value > 0; 
+    setIsSwitchEnabled(isOn);
   };
 
   const handleSwitchPress = () => {
