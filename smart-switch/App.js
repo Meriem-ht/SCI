@@ -8,12 +8,12 @@ import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import init from 'react_native_mqtt';
 
-
 const SLIDER_COLOR = '#FFE690';
 const GRAY_COLOR = 'rgba(0, 0, 0, 0.34)';
 const SLIDER_WIDTH = 300;
 const SLIDER_HEIGHT = 65;
 const BORDER_RADIUS = 10;
+
 class CustomSlider extends React.Component {
   state = {
     slideValue: 0,
@@ -76,7 +76,6 @@ class CustomSlider extends React.Component {
   }
 }
 
-
 const options = {
   host: 'broker.emqx.io',
   port: 8083,
@@ -84,7 +83,7 @@ const options = {
   id: 'id_' + parseInt(Math.random() * 100000),
 };
 
-let client; // Declare client variable here
+let client;
 
 init({
   size: 10000,
@@ -94,7 +93,6 @@ init({
   reconnect: true,
   sync: {},
 });
-
 
 const App = () => {
   const [isSwitchEnabled, setIsSwitchEnabled] = useState(false);
@@ -106,68 +104,67 @@ const App = () => {
   const [motionTopic, setMotionTopic] = useState('smart-led/motion-status');
   const [subscribedTopic, setSubscribedTopic] = useState('');
 
-    useEffect(() => {
-        client = new Paho.MQTT.Client(options.host, options.port, options.path, options.id);
-      
-          client.onConnectionLost = (responseObject) => {
-            if (responseObject.errorCode !== 0) {
-              console.log('onConnectionLost:' + responseObject.errorMessage);
-              setStatus('Disconnected');
-            }
-          };
-      
-          client.onMessageArrived = (message) => {
-            console.log('Message received:', message.payloadString);
-            if (message.destinationName === motionTopic) {
-              const newState = message.payloadString === '1'; // Assuming '1' means motion detected
-              setIsEnabled(newState);
-            }
-          };
-      
-          connect();
-      
-          return () => {
-            client.disconnect();
-          };
-        }, []);
-      
-        const connect = () => {
-          setStatus('Connecting');
-          client.connect({
-            onSuccess: onConnect,
-            useSSL: false,
-            timeout: 3,
-            onFailure: onFailure,
-          });
-        };
-      
-        const onConnect = () => {
-          setStatus('Connected');
-          subscribeTopic(statusTopic);
-          subscribeTopic(motionTopic);
-          console.log('Connected');
-        };
-      
-        const onFailure = (error) => {
-          setStatus('Connection failed: ' + error.errorMessage);
-          console.log('Connection failed:', error.errorMessage);
-        };
-      
-        const subscribeTopic = (topic) => {
-          setSubscribedTopic(topic);
-          client.subscribe(topic, { qos: 0 });
-        };
-      
-        const sendMessage = (msg, topic) => {
-          const messageObj = new Paho.MQTT.Message(msg);
-          messageObj.destinationName = topic;
-          client.send(messageObj);
-        };
-      
-        const unSubscribeTopic = () => {
-          client.unsubscribe(subscribedTopic);
-          setSubscribedTopic('');
-        };
+  useEffect(() => {
+    client = new Paho.MQTT.Client(options.host, options.port, options.path, options.id);
+
+    client.onConnectionLost = (responseObject) => {
+      if (responseObject.errorCode !== 0) {
+        console.log('onConnectionLost:' + responseObject.errorMessage);
+        setStatus('Disconnected');
+      }
+    };
+
+    client.onMessageArrived = (message) => {
+      console.log('Message received:', message.payloadString);
+      if (message.destinationName === motionTopic) {
+        const newState = message.payloadString === '1'; // Assuming '1' means motion detected
+        setIsSwitchEnabled(newState);
+      } else if (message.destinationName === statusTopic) {
+        const newState = message.payloadString === '1'; // Assuming '1' means switch ON, '0' means switch OFF
+        setIsSwitchEnabled(newState);
+      }
+    };
+
+    connect();
+
+    return () => {
+      client.disconnect();
+    };
+  }, []);
+
+  const connect = () => {
+    setStatus('Connecting');
+    client.connect({
+      onSuccess: onConnect,
+      useSSL: false,
+      timeout: 3,
+      onFailure: onFailure,
+    });
+  };
+
+  const onConnect = () => {
+    setStatus('Connected');
+    subscribeTopic(statusTopic);
+    subscribeTopic(motionTopic);
+    console.log('Connected');
+  };
+
+  const onFailure = (error) => {
+    setStatus('Connection failed: ' + error.errorMessage);
+    console.log('Connection failed:', error.errorMessage);
+  };
+
+  const subscribeTopic = (topic) => {
+    setSubscribedTopic(topic);
+    client.subscribe(topic, { qos: 0 });
+  };
+
+  const sendMessage = (msg, topic) => {
+    const messageObj = new Paho.MQTT.Message(msg);
+    messageObj.destinationName = topic;
+    client.send(messageObj);
+  };
+
   const toggleSwitch = () => {
     const newState = !isSwitchEnabled;
     setIsSwitchEnabled(newState);
