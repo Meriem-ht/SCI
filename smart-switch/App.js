@@ -349,7 +349,7 @@ const App = () => {
 
       client.onMessageArrived = (message) => {
         console.log("Message received:", message.payloadString);
-        if (message.destinationName === motionTopic) {
+        if (message.destinationName === statusTopic) {
           const newState = message.payloadString === "1"; // Assuming '1' means motion detected
           setIsSwitchEnabled(newState);
         } else if (message.destinationName === statusTopic) {
@@ -365,6 +365,55 @@ const App = () => {
       };
     }
   }, [pressed]);
+  // useEffect(() => {
+  //   // Code to execute when the app is opened
+  //   console.log("App opened");
+  //   if (client && client.connected) {
+  //     console.log("Broker is connected");
+  //     // sendMessage("request", statusTopic);
+  //     const messageObj = new Paho.MQTT.Message("message");
+  //     messageObj.destinationName = "smart-led/status";
+  //     client.send(messageObj);
+  //     console.log("Message sent successfully");
+  //   } else {
+  //     console.log("Broker is not connected");
+  //   }
+
+  //   // You can put any code here that you want to execute when the app is opened
+  // }, []);
+
+  useEffect(() => {
+    // Function to retrieve the last connected broker address from AsyncStorage
+    const retrieveLastConnectedBroker = async () => {
+      try {
+        const lastBrokerAddress = await AsyncStorage.getItem(
+          "lastBrokerAddress"
+        );
+        if (lastBrokerAddress !== null) {
+          console.log("Connected to the old one");
+          console.log(lastBrokerAddress);
+          setBrokerAddress(lastBrokerAddress);
+          client = new Paho.MQTT.Client(lastBrokerAddress, options.id);
+          client.onMessageArrived = (message) => {
+            console.log("Message received:", message.payloadString);
+            if (message.destinationName === statusTopic) {
+              const newState = message.payloadString === "1"; // Assuming '1' means motion detected
+              setIsSwitchEnabled(newState);
+            } else if (message.destinationName === statusTopic) {
+              const newState = message.payloadString === "1"; // Assuming '1' means switch ON, '0' means switch OFF
+              setIsSwitchEnabled(newState);
+            }
+          };
+          connect();
+        }
+      } catch (error) {
+        console.error("Error retrieving last connected broker:", error);
+      }
+    };
+
+    // Retrieve the last connected broker address when the component mounts
+    retrieveLastConnectedBroker();
+  }, []);
 
   const connect = () => {
     setStatus("Connecting");
@@ -379,6 +428,7 @@ const App = () => {
   const onConnect = () => {
     setStatus("Connected");
     subscribeTopic(statusTopic);
+    sendMessage("request", statusTopic);
     subscribeTopic(motionTopic);
     console.log("Connected");
   };
@@ -423,6 +473,10 @@ const App = () => {
     setBrokerAddress(`ws://${brokerIpInput}:9001/mqtt`);
     hideDialog();
     setPressed(true);
+    AsyncStorage.setItem(
+      "lastBrokerAddress",
+      `ws://${brokerIpInput}:9001/mqtt`
+    );
   };
 
   const handleSnackbarDismiss = () => setSnackbarVisible(false);
