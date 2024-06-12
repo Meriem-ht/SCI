@@ -345,22 +345,6 @@ const App = () => {
       };
     }
   }, [pressed]);
-  // useEffect(() => {
-  //   // Code to execute when the app is opened
-  //   console.log("App opened");
-  //   if (client && client.connected) {
-  //     console.log("Broker is connected");
-  //     // sendMessage("request", statusTopic);
-  //     const messageObj = new Paho.MQTT.Message("message");
-  //     messageObj.destinationName = "smart-led/status";
-  //     client.send(messageObj);
-  //     console.log("Message sent successfully");
-  //   } else {
-  //     console.log("Broker is not connected");
-  //   }
-
-  //   // You can put any code here that you want to execute when the app is opened
-  // }, []);
 
   useEffect(() => {
     // Function to retrieve the last connected broker address from AsyncStorage
@@ -463,6 +447,7 @@ const App = () => {
   const showDialog = () => setVisible(true);
   const hideDialog = () => setVisible(false);
   const handleBrokerAddressSubmit = () => {
+    console.log(brokerIpInput);
     setBrokerAddress(`ws://${brokerIpInput}:9001/mqtt`);
     hideDialog();
     setPressed(true);
@@ -470,6 +455,7 @@ const App = () => {
       "lastBrokerAddress",
       `ws://${brokerIpInput}:9001/mqtt`
     );
+    connectToBroker(`ws://${brokerIpInput}:9001/mqtt`);
   };
 
   const handleSnackbarDismiss = () => setSnackbarVisible(false);
