@@ -338,27 +338,7 @@ const App = () => {
 
   useEffect(() => {
     if (pressed) {
-      client = new Paho.MQTT.Client(brokerAddress, options.id);
-
-      client.onConnectionLost = (responseObject) => {
-        if (responseObject.errorCode !== 0) {
-          console.log("onConnectionLost:" + responseObject.errorMessage);
-          setStatus("Disconnected");
-        }
-      };
-
-      client.onMessageArrived = (message) => {
-        console.log("Message received:", message.payloadString);
-        if (message.destinationName === statusTopic) {
-          const newState = message.payloadString === "1"; // Assuming '1' means motion detected
-          setIsSwitchEnabled(newState);
-        } else if (message.destinationName === statusTopic) {
-          const newState = message.payloadString === "1"; // Assuming '1' means switch ON, '0' means switch OFF
-          setIsSwitchEnabled(newState);
-        }
-      };
-
-      connect();
+      connectToBroker(brokerAddress);
 
       return () => {
         client.disconnect();
@@ -393,18 +373,7 @@ const App = () => {
           console.log("Connected to the old one");
           console.log(lastBrokerAddress);
           setBrokerAddress(lastBrokerAddress);
-          client = new Paho.MQTT.Client(lastBrokerAddress, options.id);
-          client.onMessageArrived = (message) => {
-            console.log("Message received:", message.payloadString);
-            if (message.destinationName === statusTopic) {
-              const newState = message.payloadString === "1"; // Assuming '1' means motion detected
-              setIsSwitchEnabled(newState);
-            } else if (message.destinationName === statusTopic) {
-              const newState = message.payloadString === "1"; // Assuming '1' means switch ON, '0' means switch OFF
-              setIsSwitchEnabled(newState);
-            }
-          };
-          connect();
+          connectToBroker(lastBrokerAddress);
         }
       } catch (error) {
         console.error("Error retrieving last connected broker:", error);
@@ -423,6 +392,30 @@ const App = () => {
       timeout: 3,
       onFailure: onFailure,
     });
+  };
+
+  const connectToBroker = (address) => {
+    client = new Paho.MQTT.Client(address, options.id);
+
+    client.onConnectionLost = (responseObject) => {
+      if (responseObject.errorCode !== 0) {
+        console.log("onConnectionLost:" + responseObject.errorMessage);
+        setStatus("Disconnected");
+      }
+    };
+
+    client.onMessageArrived = (message) => {
+      console.log("Message received:", message.payloadString);
+      if (message.destinationName === statusTopic) {
+        const newState = message.payloadString === "1"; // Assuming '1' means motion detected
+        setIsSwitchEnabled(newState);
+      } else if (message.destinationName === statusTopic) {
+        const newState = message.payloadString === "1"; // Assuming '1' means switch ON, '0' means switch OFF
+        setIsSwitchEnabled(newState);
+      }
+    };
+
+    connect();
   };
 
   const onConnect = () => {
