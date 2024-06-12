@@ -290,7 +290,14 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Provider as PaperProvider } from "react-native-paper";
+import {
+  Provider as PaperProvider,
+  Button,
+  Dialog,
+  Portal,
+  TextInput,
+  Snackbar,
+} from "react-native-paper";
 import backgroundImage from "./assets/image.png";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -320,34 +327,44 @@ const App = () => {
   const [status, setStatus] = useState("Disconnected");
   const [statusTopic, setStatusTopic] = useState("smart-led/status");
   const [motionTopic, setMotionTopic] = useState("smart-led/motion-status");
+  const [visible, setVisible] = useState(false);
+  const [brokerIpInput, setBrokerIpInput] = useState("192.168.43.32");
+  const [brokerAddress, setBrokerAddress] = useState(
+    "ws://192.168.43.32:9001/mqtt"
+  );
+  const [pressed, setPressed] = useState(false);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
 
   useEffect(() => {
-    client = new Paho.MQTT.Client("ws://192.168.43.32:9001/mqtt", options.id);
+    if (pressed) {
+      client = new Paho.MQTT.Client(brokerAddress, options.id);
 
-    client.onConnectionLost = (responseObject) => {
-      if (responseObject.errorCode !== 0) {
-        console.log("onConnectionLost:" + responseObject.errorMessage);
-        setStatus("Disconnected");
-      }
-    };
+      client.onConnectionLost = (responseObject) => {
+        if (responseObject.errorCode !== 0) {
+          console.log("onConnectionLost:" + responseObject.errorMessage);
+          setStatus("Disconnected");
+        }
+      };
 
-    client.onMessageArrived = (message) => {
-      console.log("Message received:", message.payloadString);
-      if (message.destinationName === motionTopic) {
-        const newState = message.payloadString === "1"; // Assuming '1' means motion detected
-        setIsSwitchEnabled(newState);
-      } else if (message.destinationName === statusTopic) {
-        const newState = message.payloadString === "1"; // Assuming '1' means switch ON, '0' means switch OFF
-        setIsSwitchEnabled(newState);
-      }
-    };
+      client.onMessageArrived = (message) => {
+        console.log("Message received:", message.payloadString);
+        if (message.destinationName === motionTopic) {
+          const newState = message.payloadString === "1"; // Assuming '1' means motion detected
+          setIsSwitchEnabled(newState);
+        } else if (message.destinationName === statusTopic) {
+          const newState = message.payloadString === "1"; // Assuming '1' means switch ON, '0' means switch OFF
+          setIsSwitchEnabled(newState);
+        }
+      };
 
-    connect();
+      connect();
 
-    return () => {
-      client.disconnect();
-    };
-  }, []);
+      return () => {
+        client.disconnect();
+      };
+    }
+  }, [pressed]);
 
   const connect = () => {
     setStatus("Connecting");
@@ -368,6 +385,8 @@ const App = () => {
 
   const onFailure = (error) => {
     setStatus("Connection failed: " + error.errorMessage);
+    setSnackbarMessage("Connection failed: " + error.errorMessage);
+    setSnackbarVisible(true);
     console.log("Connection failed:", error.errorMessage);
   };
 
@@ -398,6 +417,16 @@ const App = () => {
     sendMessage(isVoiceEnabled ? "0" : "1", "smart-led/voice-control"); // Send voice control state
   };
 
+  const showDialog = () => setVisible(true);
+  const hideDialog = () => setVisible(false);
+  const handleBrokerAddressSubmit = () => {
+    setBrokerAddress(`ws://${brokerIpInput}:9001/mqtt`);
+    hideDialog();
+    setPressed(true);
+  };
+
+  const handleSnackbarDismiss = () => setSnackbarVisible(false);
+
   return (
     <PaperProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
@@ -408,7 +437,33 @@ const App = () => {
           <View style={styles.container}>
             <View style={styles.header}>
               <Text style={styles.title}>Smart switch</Text>
+              <Button
+                mode="contained"
+                onPress={showDialog}
+                style={styles.button}
+              >
+                Set Broker
+              </Button>
             </View>
+            <Portal>
+              <Dialog visible={visible} onDismiss={hideDialog}>
+                <Dialog.Title>Set MQTT Broker</Dialog.Title>
+                <Dialog.Content>
+                  <TextInput
+                    label="Broker IP Address"
+                    value={brokerIpInput}
+                    onChangeText={setBrokerIpInput}
+                    autoFocus
+                    keyboardType="numeric"
+                    textAlign="left"
+                  />
+                </Dialog.Content>
+                <Dialog.Actions>
+                  <Button onPress={hideDialog}>Cancel</Button>
+                  <Button onPress={handleBrokerAddressSubmit}>Submit</Button>
+                </Dialog.Actions>
+              </Dialog>
+            </Portal>
             <View style={styles.bottomContainer}>
               <View style={styles.boxWrapper}>
                 <Text
@@ -493,6 +548,13 @@ const App = () => {
                 </TouchableOpacity>
               </View>
             </View>
+            <Snackbar
+              visible={snackbarVisible}
+              onDismiss={handleSnackbarDismiss}
+              duration={Snackbar.DURATION_SHORT}
+            >
+              {snackbarMessage}
+            </Snackbar>
           </View>
         </ImageBackground>
       </GestureHandlerRootView>
@@ -513,16 +575,20 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
     width: "100%",
     position: "absolute",
-    top: 100,
+    top: 50,
+    paddingHorizontal: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#FFFFFF",
+  },
+  button: {
+    backgroundColor: "#E2FFA3",
   },
   bottomContainer: {
     flexDirection: "row",
@@ -532,32 +598,24 @@ const styles = StyleSheet.create({
   boxContainer: {
     alignItems: "center",
     justifyContent: "center",
-    padding: 10,
-    borderRadius: 15,
-    width: 100,
-    height: 100,
+    padding: 20,
+    borderRadius: 10,
   },
   miniBoxContainer: {
-    alignItems: "center",
-    justifyContent: "center",
     padding: 10,
-    borderRadius: 15,
-    width: 50,
-    height: 50,
-  },
-  boxTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "white",
-    marginBottom: 10,
-    borderBottomWidth: 2,
+    borderRadius: 5,
   },
   boxWrapper: {
     alignItems: "center",
   },
+  boxTitle: {
+    color: "#E2FFA3",
+    marginBottom: 10,
+    borderBottomWidth: 2,
+  },
   iconStyle: {
-    color: "white",
-    fontSize: 30,
+    fontSize: 24,
+    color: "#E2FFA3",
   },
 });
 
