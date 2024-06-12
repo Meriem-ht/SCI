@@ -454,7 +454,6 @@ const App = () => {
                     value={brokerIpInput}
                     onChangeText={setBrokerIpInput}
                     autoFocus
-                    keyboardType="numeric"
                     textAlign="left"
                   />
                 </Dialog.Content>
@@ -570,7 +569,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    paddingHorizontal: 20,
     paddingVertical: 150,
   },
   header: {
@@ -579,7 +577,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "100%",
     position: "absolute",
-    top: 50,
+    top: 70,
     paddingHorizontal: 20,
   },
   title: {
@@ -588,7 +586,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   button: {
-    backgroundColor: "#E2FFA3",
+    backgroundColor: "#DB9556",
   },
   bottomContainer: {
     flexDirection: "row",
@@ -598,24 +596,32 @@ const styles = StyleSheet.create({
   boxContainer: {
     alignItems: "center",
     justifyContent: "center",
-    padding: 20,
-    borderRadius: 10,
+    padding: 10,
+    borderRadius: 15,
+    width: 100,
+    height: 100,
   },
   miniBoxContainer: {
+    alignItems: "center",
+    justifyContent: "center",
     padding: 10,
-    borderRadius: 5,
+    borderRadius: 15,
+    width: 50,
+    height: 50,
+  },
+  boxTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 10,
+    borderBottomWidth: 2,
   },
   boxWrapper: {
     alignItems: "center",
   },
-  boxTitle: {
-    color: "#E2FFA3",
-    marginBottom: 10,
-    borderBottomWidth: 2,
-  },
   iconStyle: {
-    fontSize: 24,
-    color: "#E2FFA3",
+    color: "white",
+    fontSize: 30,
   },
 });
 
