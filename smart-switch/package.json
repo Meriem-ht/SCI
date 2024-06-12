@@ -25,6 +25,8 @@
     "react-native-gesture-handler": "~2.16.1",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-mqtt": "^0.1.0-beta4",
+    "react-native-mqtt-client": "^0.0.1",
+    "react-native-paho-mqtt": "^0.1.1",
     "react-native-paper": "^5.12.3",
     "react-native-reanimated": "~3.10.1",
     "rn-vertical-slider": "^4.0.0",
