@@ -8,10 +8,6 @@
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 // import init from 'react_native_mqtt';
 
-
-
-
-
 // const options = {
 //   id: 'id_' + parseInt(Math.random() * 100000),
 // };
@@ -36,8 +32,6 @@
 //   const [statusTopic, setStatusTopic] = useState('smart-led/status');
 //   const [motionTopic, setMotionTopic] = useState('smart-led/motion-status');
 //   const [subscribedTopic, setSubscribedTopic] = useState('');
-
-
 
 //   useEffect(() => {
 //     client = new Paho.MQTT.Client('ws://192.168.43.32:9001/mqtt', options.id);
@@ -110,7 +104,7 @@
 //     setHorizontalSliderValue(value);
 //     sendMessage(String(Math.round(value * 2)), 'smart-led/status'); // Send slider value to intensity topic
 //     // Update isSwitchEnabled based on the slider value
-//     const isOn = value > 0; 
+//     const isOn = value > 0;
 //     setIsSwitchEnabled(isOn);
 //   };
 
@@ -245,7 +239,7 @@
 //     fontWeight: 'bold',
 //     fontSize: 20,
 //   },
- 
+
 //   label: {
 //     color: '#DB9556',
 //     fontWeight: 'bold',
@@ -287,19 +281,25 @@
 
 // export default App;
 
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, ImageBackground, TouchableOpacity } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Provider as PaperProvider } from 'react-native-paper';
-import backgroundImage from './assets/image.png';
-import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import init from 'react_native_mqtt';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  StyleSheet,
+  Text,
+  ImageBackground,
+  TouchableOpacity,
+} from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Provider as PaperProvider } from "react-native-paper";
+import backgroundImage from "./assets/image.png";
+import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import init from "react_native_mqtt";
 
 const options = {
-  host: '192.168.43.32',
+  host: "192.168.43.32",
   port: 1883,
-  id: 'id_' + parseInt(Math.random() * 100000),
+  id: "id_" + parseInt(Math.random() * 100000),
 };
 
 let client;
@@ -316,28 +316,28 @@ init({
 const App = () => {
   const [isSwitchEnabled, setIsSwitchEnabled] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
-  const [selectedBox, setSelectedBox] = useState('');
-  const [status, setStatus] = useState('Disconnected');
-  const [statusTopic, setStatusTopic] = useState('smart-led/status');
-  const [motionTopic, setMotionTopic] = useState('smart-led/motion-status');
+  const [selectedBox, setSelectedBox] = useState("");
+  const [status, setStatus] = useState("Disconnected");
+  const [statusTopic, setStatusTopic] = useState("smart-led/status");
+  const [motionTopic, setMotionTopic] = useState("smart-led/motion-status");
 
   useEffect(() => {
-    client = new Paho.MQTT.Client('ws://192.168.43.32:9001/mqtt', options.id);
+    client = new Paho.MQTT.Client("ws://192.168.43.32:9001/mqtt", options.id);
 
     client.onConnectionLost = (responseObject) => {
       if (responseObject.errorCode !== 0) {
-        console.log('onConnectionLost:' + responseObject.errorMessage);
-        setStatus('Disconnected');
+        console.log("onConnectionLost:" + responseObject.errorMessage);
+        setStatus("Disconnected");
       }
     };
 
     client.onMessageArrived = (message) => {
-      console.log('Message received:', message.payloadString);
+      console.log("Message received:", message.payloadString);
       if (message.destinationName === motionTopic) {
-        const newState = message.payloadString === '1'; // Assuming '1' means motion detected
+        const newState = message.payloadString === "1"; // Assuming '1' means motion detected
         setIsSwitchEnabled(newState);
       } else if (message.destinationName === statusTopic) {
-        const newState = message.payloadString === '1'; // Assuming '1' means switch ON, '0' means switch OFF
+        const newState = message.payloadString === "1"; // Assuming '1' means switch ON, '0' means switch OFF
         setIsSwitchEnabled(newState);
       }
     };
@@ -350,7 +350,7 @@ const App = () => {
   }, []);
 
   const connect = () => {
-    setStatus('Connecting');
+    setStatus("Connecting");
     client.connect({
       onSuccess: onConnect,
       useSSL: false,
@@ -360,15 +360,15 @@ const App = () => {
   };
 
   const onConnect = () => {
-    setStatus('Connected');
+    setStatus("Connected");
     subscribeTopic(statusTopic);
     subscribeTopic(motionTopic);
-    console.log('Connected');
+    console.log("Connected");
   };
 
   const onFailure = (error) => {
-    setStatus('Connection failed: ' + error.errorMessage);
-    console.log('Connection failed:', error.errorMessage);
+    setStatus("Connection failed: " + error.errorMessage);
+    console.log("Connection failed:", error.errorMessage);
   };
 
   const subscribeTopic = (topic) => {
@@ -384,24 +384,27 @@ const App = () => {
   const toggleSwitch = () => {
     const newState = !isSwitchEnabled;
     setIsSwitchEnabled(newState);
-    sendMessage(newState ? '1' : '0', statusTopic); // Send '1' for ON, '0' for OFF to status topic
+    sendMessage(newState ? "1" : "0", statusTopic); // Send '1' for ON, '0' for OFF to status topic
   };
 
   const handleSwitchPress = () => {
-    setSelectedBox('switch');
+    setSelectedBox("switch");
     toggleSwitch();
   };
 
   const handleVoicePress = () => {
-    setSelectedBox('voice');
+    setSelectedBox("voice");
     setIsVoiceEnabled(!isVoiceEnabled);
-    sendMessage(isVoiceEnabled ? '0' : '1', 'smart-led/voice-control'); // Send voice control state
+    sendMessage(isVoiceEnabled ? "0" : "1", "smart-led/voice-control"); // Send voice control state
   };
 
   return (
     <PaperProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <ImageBackground source={backgroundImage} style={styles.backgroundImage}>
+        <ImageBackground
+          source={backgroundImage}
+          style={styles.backgroundImage}
+        >
           <View style={styles.container}>
             <View style={styles.header}>
               <Text style={styles.title}>Smart switch</Text>
@@ -411,7 +414,10 @@ const App = () => {
                 <Text
                   style={[
                     styles.boxTitle,
-                    { borderBottomColor: selectedBox === 'switch' ? '#E2FFA3' : 'transparent' },
+                    {
+                      borderBottomColor:
+                        selectedBox === "switch" ? "#E2FFA3" : "transparent",
+                    },
                   ]}
                 >
                   Switch
@@ -419,18 +425,29 @@ const App = () => {
                 <TouchableOpacity
                   style={[
                     styles.boxContainer,
-                    { backgroundColor: isSwitchEnabled ? '#E2FFA3' : 'rgba(0,0,0,.34)' },
+                    {
+                      backgroundColor: isSwitchEnabled
+                        ? "#E2FFA3"
+                        : "rgba(0,0,0,.34)",
+                    },
                   ]}
                   onPress={handleSwitchPress}
                 >
                   <TouchableOpacity
                     style={[
                       styles.miniBoxContainer,
-                      { backgroundColor: isSwitchEnabled ? '#242323' : 'rgba(255,255,255,.24)' },
+                      {
+                        backgroundColor: isSwitchEnabled
+                          ? "#242323"
+                          : "rgba(255,255,255,.24)",
+                      },
                     ]}
                     onPress={handleSwitchPress}
                   >
-                    <MaterialIcons name="lightbulb-outline" style={styles.iconStyle} />
+                    <MaterialIcons
+                      name="lightbulb-outline"
+                      style={styles.iconStyle}
+                    />
                   </TouchableOpacity>
                 </TouchableOpacity>
               </View>
@@ -438,7 +455,10 @@ const App = () => {
                 <Text
                   style={[
                     styles.boxTitle,
-                    { borderBottomColor: selectedBox === 'voice' ? '#E2FFA3' : 'transparent' },
+                    {
+                      borderBottomColor:
+                        selectedBox === "voice" ? "#E2FFA3" : "transparent",
+                    },
                   ]}
                 >
                   Voice
@@ -446,18 +466,29 @@ const App = () => {
                 <TouchableOpacity
                   style={[
                     styles.boxContainer,
-                    { backgroundColor: isVoiceEnabled ? '#E2FFA3' : 'rgba(0,0,0,.34)' },
+                    {
+                      backgroundColor: isVoiceEnabled
+                        ? "#E2FFA3"
+                        : "rgba(0,0,0,.34)",
+                    },
                   ]}
                   onPress={handleVoicePress}
                 >
                   <TouchableOpacity
                     style={[
                       styles.miniBoxContainer,
-                      { backgroundColor: isVoiceEnabled ? '#242323' : 'rgba(255,255,255,.24)' },
+                      {
+                        backgroundColor: isVoiceEnabled
+                          ? "#242323"
+                          : "rgba(255,255,255,.24)",
+                      },
                     ]}
                     onPress={handleVoicePress}
                   >
-                    <MaterialCommunityIcons name="microphone-outline" style={styles.iconStyle} />
+                    <MaterialCommunityIcons
+                      name="microphone-outline"
+                      style={styles.iconStyle}
+                    />
                   </TouchableOpacity>
                 </TouchableOpacity>
               </View>
@@ -472,41 +503,43 @@ const App = () => {
 const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
-    resizeMode: 'cover',
+    resizeMode: "cover",
   },
   container: {
     flex: 1,
-    justifyContent: 'space-between',
+    justifyContent: "center",
     paddingHorizontal: 20,
-    paddingVertical: 50,
+    paddingVertical: 150,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    position: "absolute",
+    top: 100,
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
   },
   bottomContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
   },
   boxContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 10,
     borderRadius: 15,
     width: 100,
     height: 100,
   },
   miniBoxContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 10,
     borderRadius: 15,
     width: 50,
@@ -514,16 +547,16 @@ const styles = StyleSheet.create({
   },
   boxTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
+    fontWeight: "bold",
+    color: "white",
     marginBottom: 10,
     borderBottomWidth: 2,
   },
   boxWrapper: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   iconStyle: {
-    color: 'white',
+    color: "white",
     fontSize: 30,
   },
 });
