@@ -76,7 +76,7 @@ The application and ESP8266 communicate using MQTT topics.
 Clone the repository:
 
 ```bash
-git clone https://github.com/Meriem-ht/SCI.git
+git clone https://github.com/Meriem-ht/SCI-Smart-Switch.git
 ```
 
 Install dependencies:
